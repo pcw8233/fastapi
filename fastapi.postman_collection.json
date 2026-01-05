@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "e89ac87b-9f44-4588-9302-4d0601a32a21",
+		"_postman_id": "588cb668-719c-48e8-9ef6-0dcb359d0883",
 		"name": "2026 오즈 (HTTP)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "24925762"
@@ -120,7 +120,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"OZ coding\",\n  \"price\": 9.999,\n  \"description\": \"hi\"\n}\n",
+									"raw": "{\n  \"name\": \"OZ coding\",\n  \"price\": -10,\n  \"description\": \"hi\"\n}\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -140,9 +140,14 @@
 								}
 							},
 							"response": []
-						},
+						}
+					]
+				},
+				{
+					"name": "2일차",
+					"item": [
 						{
-							"name": "실습7",
+							"name": "실습1",
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -170,13 +175,13 @@
 							"response": []
 						},
 						{
-							"name": "실습8",
+							"name": "실습2",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"OZ coding Backend FastAPI 특강인데 이름이 길면 에러가 나와야 합니다. 근데 뭐 입력하죠? 그냥 쭉 입력하면 길어서 에러 나겠죠? 에러나와라~~~\",\n  \"email\": \"oz-coding@nxr.com\",\n  \"date\": \"2026-02-01T12:00:00\"\n}\n",
+									"raw": "{\n  \"name\": \"OZ coding Backend FastAPI 특강\",\n  \"email\": \"oz-coding@nxr.com\",\n  \"date\": \"2026-02-01T12:00:00\"\n}\n",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -193,6 +198,62 @@
 									"path": [
 										"reservations",
 										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "실습3",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"hello@example.com\",\n  \"phone_number\": \"010-1234-5678\"\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8000/contact",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"contact"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "실습4",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Laptop\",\n  \"price\": 1000,\n  \"discount\": 10\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8000/products",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products"
 									]
 								}
 							},
