@@ -1,8 +1,18 @@
-from fastapi import FastAPI
+# fastapi
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
+
+# 암호화
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
+
+# db
+from database import get_db
+from models import User
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 app = FastAPI()
 
@@ -53,8 +63,27 @@ class UserLogin(BaseModel):
 # api
 ######################
 @app.post("/register")
-def register():
-    pass
+async def register(
+    user: UserRegister,
+    db: AsyncSession = Depends(get_db)
+):
+    # 유저가 이미 가입했는지 확인하기
+    result = await db.execute(
+        select(User).where(User.username == user.username)
+    )
+    existing_user = result.scalar_one_or_none()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="이미 가입한 사람")
+
+    # 새로운 유저를 db 추가
+    new_user = User(
+        username=user.username,
+        password=hash_password(user.password)
+    )
+    db.add(new_user)
+    await db.commit()
+    return {"message": "회원가입 성공"}
+
 
 @app.post("/login")
 def login():
