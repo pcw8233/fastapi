@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+    <head>
+        <title>FastAPI 실시간 숫자 게임</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background: #f0f2f5;
+            }
+            #game-container {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-top: 50px;
+                text-align: center;
+            }
+            input {
+                padding: 10px;
+                font-size: 1.2rem;
+                width: 80px;
+                border: 2px solid #ddd;
+                border-radius: 6px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 1.2rem;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #0056b3;
+            }
+            #log {
+                margin-top: 20px;
+                padding: 10px;
+                width: 300px;
+                height: 150px;
+                overflow-y: auto;
+                background: #eee;
+                border-radius: 6px;
+                font-size: 0.9rem;
+            }
+            .status {
+                color: #28a745;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="game-container">
+            <h2>🔢 실시간 Up-Down 게임</h2>
+            <div id="status" class="status">서버 연결 중...</div>
+            <input type="number" id="guessInput" placeholder="숫자" />
+            <button onclick="sendGuess()">전송</button>
+            <div id="log"></div>
+        </div>
+
+        <script>
+            // WebSocket 연결 생성
+            const ws = new WebSocket("ws://127.0.0.1:8000/ws/game");
+            const logDiv = document.getElementById("log");
+            const statusDiv = document.getElementById("status");
+
+            ws.onopen = () => (statusDiv.innerText = "🟢 서버 연결 완료!");
+            ws.onclose = () => (statusDiv.innerText = "🔴 연결 종료");
+
+            // 서버로부터 메시지 수신 시 처리
+            ws.onmessage = (event) => {
+                const message = document.createElement("div");
+                message.innerText = event.data;
+                logDiv.prepend(message); // 최신 메시지를 위로
+            };
+
+            function sendGuess() {
+                const input = document.getElementById("guessInput");
+                if (input.value) {
+                    ws.send(input.value); // 서버로 데이터 전송
+                    input.value = "";
+                    input.focus();
+                }
+            }
+
+            // 엔터키 지원
+            document
+                .getElementById("guessInput")
+                .addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") sendGuess();
+                });
+        </script>
+    </body>
+</html>

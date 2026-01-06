@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+    <head>
+        <title>FastAPI 개인 맞춤형 연결</title>
+        <style>
+            body {
+                font-family: "Pretendard", sans-serif;
+                background: #f8f9fa;
+                display: flex;
+                justify-content: center;
+                padding-top: 50px;
+            }
+            .container {
+                width: 400px;
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            }
+            .input-group {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            input {
+                flex: 1;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+            }
+            button {
+                padding: 12px 20px;
+                background: #4dabf7;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+            }
+            #chat-box {
+                height: 200px;
+                overflow-y: auto;
+                background: #f1f3f5;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+            .system-msg {
+                color: #868e96;
+                font-style: italic;
+                text-align: center;
+                margin-bottom: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2 style="text-align: center; color: #333">🔗 개인 연결 테스트</h2>
+
+            <div id="setup-section">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="nickname"
+                        placeholder="사용할 닉네임 입력"
+                    />
+                    <button onclick="connect()">연결</button>
+                </div>
+            </div>
+
+            <div id="chat-section" style="display: none">
+                <div id="chat-box"></div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="message"
+                        placeholder="메시지 입력..."
+                        onkeypress="if(event.key==='Enter') send()"
+                    />
+                    <button onclick="send()">보내기</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let ws;
+
+            function connect() {
+                const nickname = document.getElementById("nickname").value;
+                if (!nickname) return alert("닉네임을 입력하세요!");
+
+                // 닉네임을 URL 파라미터로 넣어 연결
+                ws = new WebSocket(`ws://localhost:8000/ws/${nickname}`);
+
+                ws.onopen = () => {
+                    document.getElementById("setup-section").style.display =
+                        "none";
+                    document.getElementById("chat-section").style.display =
+                        "block";
+                };
+
+                ws.onmessage = (event) => {
+                    const chatBox = document.getElementById("chat-box");
+                    const msgDiv = document.createElement("div");
+                    msgDiv.innerText = event.data;
+                    chatBox.appendChild(msgDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                };
+            }
+
+            function send() {
+                const msgInput = document.getElementById("message");
+                if (msgInput.value) {
+                    ws.send(msgInput.value);
+                    msgInput.value = "";
+                }
+            }
+        </script>
+    </body>
+</html>

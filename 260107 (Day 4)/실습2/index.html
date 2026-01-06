@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <title>FastAPI 실시간 서버 모니터링</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body {
+                font-family: "Inter", sans-serif;
+                background: #0f172a;
+                color: #f8fafc;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+            .dashboard {
+                width: 90%;
+                max-width: 800px;
+                background: #1e293b;
+                padding: 2rem;
+                border-radius: 16px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            .status-dot {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #94a3b8;
+                margin-right: 8px;
+            }
+            .status-online {
+                background: #22c55e;
+                box-shadow: 0 0 10px #22c55e;
+            }
+
+            .metrics {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            .card {
+                background: #334155;
+                padding: 1.5rem;
+                border-radius: 12px;
+                text-align: center;
+            }
+            .value {
+                font-size: 2.5rem;
+                font-weight: 600;
+                color: #38bdf8;
+                margin: 0.5rem 0;
+            }
+            .label {
+                color: #94a3b8;
+                font-size: 0.9rem;
+                text-transform: uppercase;
+            }
+
+            .chart-container {
+                background: #334155;
+                padding: 1rem;
+                border-radius: 12px;
+                height: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="dashboard">
+            <div class="header">
+                <h2>🖥️ Server Resource Monitor</h2>
+                <p>
+                    <span id="status-dot" class="status-dot"></span>
+                    <span id="status-text">연결 대기 중...</span>
+                </p>
+            </div>
+
+            <div class="metrics">
+                <div class="card">
+                    <div class="label">CPU Usage</div>
+                    <div id="cpu-val" class="value">0.0%</div>
+                </div>
+                <div class="card">
+                    <div class="label">RAM Usage</div>
+                    <div id="ram-val" class="value">0.0%</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="resourceChart"></canvas>
+            </div>
+        </div>
+
+        <script>
+            const ctx = document
+                .getElementById("resourceChart")
+                .getContext("2d");
+            const cpuVal = document.getElementById("cpu-val");
+            const ramVal = document.getElementById("ram-val");
+            const statusDot = document.getElementById("status-dot");
+            const statusText = document.getElementById("status-text");
+
+            // 차트 초기 설정
+            const chart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: Array(20).fill(""), // X축 라벨 20개 비워둠
+                    datasets: [
+                        {
+                            label: "CPU (%)",
+                            borderColor: "#38bdf8",
+                            data: Array(20).fill(0),
+                            tension: 0.4,
+                            fill: false,
+                        },
+                        {
+                            label: "RAM (%)",
+                            borderColor: "#fbbf24",
+                            data: Array(20).fill(0),
+                            tension: 0.4,
+                            fill: false,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: "#475569" } },
+                        x: { display: false },
+                    },
+                    plugins: { legend: { labels: { color: "#f8fafc" } } },
+                },
+            });
+
+            // 웹소켓 연결
+            const ws = new WebSocket("ws://localhost:8000/ws/monitor");
+
+            ws.onopen = () => {
+                statusDot.classList.add("status-online");
+                statusText.innerText = "연결됨 (실시간 데이터 수신 중)";
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                // 텍스트 업데이트
+                cpuVal.innerText = data.cpu.toFixed(1) + "%";
+                ramVal.innerText = data.ram.toFixed(1) + "%";
+
+                // 차트 데이터 업데이트 (맨 앞 제거, 맨 뒤 추가)
+                chart.data.datasets[0].data.shift();
+                chart.data.datasets[0].data.push(data.cpu);
+                chart.data.datasets[1].data.shift();
+                chart.data.datasets[1].data.push(data.ram);
+                chart.update("none"); // 애니메이션 없이 빠르게 업데이트
+            };
+
+            ws.onclose = () => {
+                statusDot.classList.remove("status-online");
+                statusText.innerText = "연결 끊김";
+            };
+        </script>
+    </body>
+</html>
