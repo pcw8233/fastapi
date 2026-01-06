@@ -90,7 +90,7 @@ async def register(
 
 
 @app.post("/login", response_model=Token)
-def login(
+async def login(
     user: UserLogin,
     db: AsyncSession = Depends(get_db)
 ):
