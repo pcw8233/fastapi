@@ -58,6 +58,10 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 
 ######################
 # api
@@ -85,6 +89,20 @@ async def register(
     return {"message": "회원가입 성공"}
 
 
-@app.post("/login")
-def login():
-    pass
+@app.post("/login", response_model=Token)
+def login(
+    user: UserLogin,
+    db: AsyncSession = Depends(get_db)
+):
+    # 유저가 등록되어 있는지 확인하기
+    result = await db.execute(
+        select(User).where(User.username == user.username)
+    )
+    db_user = result.scalar_one_or_none()
+
+    # 유저가 없을 때
+    if not db_user and not verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="아이디나 비밀번호가 잘못됨")
+
+    access_token = create_access_token({"sub": db_user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
