@@ -100,8 +100,8 @@ async def login(
     )
     db_user = result.scalar_one_or_none()
 
-    # 유저가 없을 때
-    if not db_user and not verify_password(user.password, db_user.password):
+    # 유저가 없거나 비밀번호 오류
+    if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="아이디나 비밀번호가 잘못됨")
 
     access_token = create_access_token({"sub": db_user.username})
