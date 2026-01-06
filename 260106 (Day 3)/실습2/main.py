@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from passlib.context import CryptoContext
+from passlib.context import CryptContext
+from jose import jwt
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
@@ -9,7 +11,9 @@ app = FastAPI()
 ######################
 # utils
 ######################
-pwd_context = CryptoContext(
+
+# Password
+pwd_context = CryptContext(
     schemes=["argon2"], # 암호화 알고리즘 (bcrypt, argon2)
     deprecated="auto"
 )
@@ -21,7 +25,16 @@ def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
 
+# Access Token (JWT 형태)
+ALGORITHM = "HS256"
+SECRET_KEY = "be16-oz" # 자물쇠
+ACCESS_TOKEN_EXPIRE_MINS = 30
 
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 ######################
