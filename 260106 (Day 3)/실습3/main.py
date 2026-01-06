@@ -1,97 +1,55 @@
-from fastapi import FastAPI, HTTPException, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+# fastapi
+from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordBearer
+
+# 암호화
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
-from fastapi.security import OAuth2PasswordBearer
 
+# db
 from database import get_db
 from models import User
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# ================= JWT 설정 =================
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
-
-pwd_context = CryptContext(
-    schemes=["argon2"],
-    deprecated="auto"
-)
 
 app = FastAPI()
 
-# ================= Pydantic =================
-class UserRegister(BaseModel):
-    username: str
-    password: str
 
-class UserLogin(BaseModel):
-    username: str
-    password: str
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+######################
+# utils
+######################
 
-# ================= Utils =================
+# Password
+pwd_context = CryptContext(
+    schemes=["argon2"], # 암호화 알고리즘 (bcrypt, argon2)
+    deprecated="auto"
+)
+
 def hash_password(password: str):
     return pwd_context.hash(password)
 
-def verify_password(plain: str, hashed: str):
+def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
+
+
+# Access Token (JWT 형태)
+ALGORITHM = "HS256"
+SECRET_KEY = "be16-oz" # 자물쇠
+ACCESS_TOKEN_EXPIRE_MINS = 30
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# ================= Register =================
-@app.post("/register")
-async def register(
-    user: UserRegister,
-    db: AsyncSession = Depends(get_db)
-):
-    result = await db.execute(
-        select(User).where(User.username == user.username)
-    )
-    existing_user = result.scalar_one_or_none()
+# TODO: 인증 관련
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
-
-    new_user = User(
-        username=user.username,
-        password=hash_password(user.password),
-    )
-
-    db.add(new_user)
-    await db.commit()
-
-    return {"message": "User registered successfully"}
-
-# ================= Login =================
-@app.post("/login", response_model=Token)
-async def login(
-    user: UserLogin,
-    db: AsyncSession = Depends(get_db)
-):
-    result = await db.execute(
-        select(User).where(User.username == user.username)
-    )
-    db_user = result.scalar_one_or_none()
-
-    if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    access_token = create_access_token({"sub": db_user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# ================= get_current_user =================
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -104,7 +62,66 @@ async def get_current_user(
     """
     pass
 
-# ================= Profile =================
+######################
+# pydantic
+######################
+class UserRegister(BaseModel):
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+######################
+# api
+######################
+@app.post("/register")
+async def register(
+    user: UserRegister,
+    db: AsyncSession = Depends(get_db)
+):
+    # 유저가 이미 가입했는지 확인하기
+    result = await db.execute(
+        select(User).where(User.username == user.username)
+    )
+    existing_user = result.scalar_one_or_none()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="이미 가입한 사람")
+
+    # 새로운 유저를 db 추가
+    new_user = User(
+        username=user.username,
+        password=hash_password(user.password)
+    )
+    db.add(new_user)
+    await db.commit()
+    return {"message": "회원가입 성공"}
+
+
+@app.post("/login", response_model=Token)
+async def login(
+    user: UserLogin,
+    db: AsyncSession = Depends(get_db)
+):
+    # 유저가 등록되어 있는지 확인하기
+    result = await db.execute(
+        select(User).where(User.username == user.username)
+    )
+    db_user = result.scalar_one_or_none()
+
+    # 유저가 없거나 비밀번호 오류
+    if not db_user or not verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="아이디나 비밀번호가 잘못됨")
+
+    access_token = create_access_token({"sub": db_user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/profile")
 async def profile(current_user: dict = Depends(get_current_user)):
     return {
