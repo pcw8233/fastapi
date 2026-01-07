@@ -43,7 +43,7 @@ ACCESS_TOKEN_EXPIRE_MINS = 30
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -60,7 +60,32 @@ async def get_current_user(
     3. DB에서 사용자 존재 여부 확인
     4. 사용자가 없거나 토큰이 유효하지 않다면, 401 Unauthorized 오류를 반환
     """
-    pass
+    credential_error = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="무효한 토큰값")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        exp = payload.get("exp")
+
+        if username is None:
+            raise credential_error
+
+        if exp is None or (datetime.utcfromtimestamp(exp) < datetime.utcnow()):
+            raise credential_error
+
+    except JWTError:
+        raise credential_error
+
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise credential_error
+
+    return {
+        "id": user.id,
+        "username": user.username
+    }
+
 
 ######################
 # pydantic
@@ -124,6 +149,4 @@ async def login(
 
 @app.get("/profile")
 async def profile(current_user: dict = Depends(get_current_user)):
-    return {
-        "username": current_user["username"]
-    }
+    return current_user
