@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from jose import jwt
 import asyncio
+from datetime import datetime, timedelta
 
 import models, auth, database
 from routers import market, trade
@@ -47,7 +48,16 @@ async def register(
 ):
     """회원가입"""
     # TODO: 중복 아이디를 확인하고, 새로운 유저를 생성하여 DB에 저장하세요
-    pass
+    result = await db.execute(
+        select(models.User).filter(models.User.username == username)
+    )
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="중복 아이디")
+    db.add(
+        models.User(username=username, password=auth.pwd_context.hash(password))
+    )
+    await db.commit()
+    return {"msg": "회원가입 완료"}
 
 
 @app.post("/login")
@@ -57,5 +67,20 @@ async def login(
 ):
     """로그인"""
     # TODO: 유저 정보를 확인하고, 비밀번호 검증 후 JWT 토큰을 발급하세요
+    result = await db.execute(
+        select(models.User).filter(models.User.username == form_data.username)
+    )
+    user = result.scalars().first()
+    if not user or not auth.pwd_context.verify(
+        form_data.password, user.password
+    ):
+        raise HTTPException(status_code=400, detail="로그인 실패")
+
     # 토큰 만료 시간은 현재시간 + 15분 입니다.
-    pass
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    token = jwt.encode(
+        {"sub": user.username, "exp":expire},
+        auth.SECRET_KEY,
+        algorithm=auth.ALGORITHM
+    )
+    return {"access_token": token, "token_type": "bearer"}

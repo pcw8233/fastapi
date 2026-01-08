@@ -12,7 +12,10 @@ class User(Base):
     __tablename__ = "users"
 
     # TODO: id, username(아이디), password(암호화된 비번), balance(잔액, float) 필드를 정의하세요
-    pass
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password = Column(String)
+    balance = Column(Float, default=1000000)  # 초기 자금 100만원
 
 
 class Portfolio(Base):
@@ -20,4 +23,8 @@ class Portfolio(Base):
     __tablename__ = "portfolios"
 
     # TODO: id, username(소유자 아이디), symbol(종목코드), amount(보유수량), avg_price(매수평단가) 필드를 정의하세요
-    pass
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, index=True)
+    symbol = Column(String)
+    amount = Column(Integer, default=0)
+    avg_price = Column(Float, default=0.0)

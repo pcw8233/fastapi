@@ -10,11 +10,12 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import get_db
+from datetime import datetime
 import models
 
 # TODO: JWT 서명에 사용할 SECRET_KEY와 ALGORITHM(HS256)을 설정하세요
-SECRET_KEY = ""
-ALGORITHM = ""
+SECRET_KEY = "oz_secret_key_final"
+ALGORITHM = "HS256"
 
 # 비밀번호 암호화 컨텍스트 (argon2 알고리즘 사용)
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -29,14 +30,31 @@ async def get_current_user(
     """토큰 해독 후 현재 로그인한 유저 정보를 반환하는 의존성 함수"""
     try:
         # TODO: jwt.decode를 사용하여 토큰을 해독하고 유저네임(sub)을 추출하세요
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+
         # TODO: DB에서 해당 유저를 조회(select)하여 변수 user에 저장하세요
+        result = await db.execute(
+            select(models.User).filter(models.User.username == username)
+        )
+        user = result.scalars().first()
 
         # 유저가 존재하지 않을 경우 401 에러 발생
-        user = None # 수정하세요
         if not user:
             raise HTTPException(status_code=401, detail="인증 실패")
 
+        # 만료시간 확인
+        # payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+        # exp = payload.get("exp")
+        # if exp and datetime.utcnow().timestamp() > exp:
+        #     raise HTTPException(status_code=401, detail="토큰이 만료되었습니다")
+
         return user
-    except:
-        # 토큰 무효화 등 예외 발생 시 401 에러 반환
+
+    # 예외 발생 시 401 에러 반환
+    # except jwt.ExpiredSignatureError:
+    #     raise HTTPException(status_code=401, detail="토큰이 만료되었습니다")
+    except jwt.JWTError:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰")
+    # except Exception:
+    #     raise HTTPException(status_code=401, detail="인증 실패")
