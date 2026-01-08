@@ -52,9 +52,9 @@ async def get_current_user(
         return user
 
     # 예외 발생 시 401 에러 반환
-    # except jwt.ExpiredSignatureError:
-    #     raise HTTPException(status_code=401, detail="토큰이 만료되었습니다")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="토큰이 만료되었습니다")
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰")
-    # except Exception:
-    #     raise HTTPException(status_code=401, detail="인증 실패")
+    except Exception:
+        raise HTTPException(status_code=401, detail="인증 실패")
