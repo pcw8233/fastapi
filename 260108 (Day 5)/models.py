@@ -13,8 +13,8 @@ class User(Base):
 
     # TODO: id, username(아이디), password(암호화된 비번), balance(잔액, float) 필드를 정의하세요
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    password = Column(String)
+    username = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
     balance = Column(Float, default=1000000)  # 초기 자금 100만원
 
 
